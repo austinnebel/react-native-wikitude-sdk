@@ -49,12 +49,6 @@ class WikitudeView extends React.Component {
     this.resumeRendering();
   }
 
-  /*
-    componentWillMount(){
-      console.log("component will mount")
-      //this.resumeRendering();
-    }
-    */
   componentWillUnmount() {
     console.log('componentWillUnmount');
     this.stopRendering();
@@ -65,17 +59,6 @@ class WikitudeView extends React.Component {
     console.log('Value of URL: ', this.props.url);
     //this.resumeRendering();
   }
-  /*
-    shouldComponentUpdate(nextProps,nextState){
-
-      if(nextProps.url != this.props.url || nextProps.licenseKey != this.props.licenseKey){
-        console.log("shouldComponentUpdate: calling resumeRendering")
-        //this.resumeRendering();
-      }else{
-      }
-      //return nextProps.url != this.props.url || nextProps.licenseKey != this.props.licenseKey || nextProps.hasCameraPermissions != this.props.hasCameraPermissions ;
-    }
-    */
 
   requestPermission = function () {
     if (Platform.OS === 'android') {
@@ -121,9 +104,6 @@ class WikitudeView extends React.Component {
         );
       }
     } else if (Platform.OS === 'ios') {
-      /*return  NativeModules.RNWikitude.setUrl(newUrl,
-          findNodeHandle(this.wikitudeRef)
-        );*/
       UIManager.dispatchViewManagerCommand(
         findNodeHandle(this.wikitudeRef),
         UIManager.getViewManagerConfig('RNWikitude').Commands.setUrl,
@@ -167,10 +147,6 @@ class WikitudeView extends React.Component {
         UIManager.getViewManagerConfig('RNWikitude').Commands.injectLocation,
         [lat, lng],
       );
-      /*return  NativeModules.RNWikitude.injectLocation(
-          lat,lng,
-          findNodeHandle(this)
-        );*/
     }
   };
 
@@ -194,6 +170,7 @@ class WikitudeView extends React.Component {
 
   resumeRendering = function () {
     console.log('Calling resumeRendering');
+
     if (Platform.OS === 'android') {
       if (this.state.hasCameraPermissions) {
         UIManager.dispatchViewManagerCommand(
@@ -215,7 +192,7 @@ class WikitudeView extends React.Component {
     if (!this.props.onJsonReceived) {
       return;
     }
-    // process raw event...
+    // process native event
     this.props.onJsonReceived(event.nativeEvent);
   };
 
@@ -225,7 +202,7 @@ class WikitudeView extends React.Component {
     }
     this.props.onFinishLoading(event.nativeEvent);
 
-    if (Platform.OS == 'android') {
+    if (Platform.OS === 'android') {
       //this.resumeRendering();
     } else {
       this.resumeRendering();
@@ -270,7 +247,7 @@ class WikitudeView extends React.Component {
   render() {
     const hasPermission = this.state.hasCameraPermissions;
 
-    if (Platform.OS == 'android') {
+    if (Platform.OS === 'android') {
       if (hasPermission) {
         return (
           <WKTView
