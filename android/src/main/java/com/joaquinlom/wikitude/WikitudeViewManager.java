@@ -73,7 +73,54 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
     Boolean firstTime = true;
     Boolean hasCameraPermission = false;
     private final String TAG ="WikitudeViewManager";
-    
+
+    // Value used to access this class in React
+    public static final String REACT_CLASS = "RNWikitude";
+
+    // Constructor
+    public WikitudeViewManager(ReactApplicationContext context){
+        super();
+        this.ctx = context;
+    }
+
+    // Props for React-Native access
+    @ReactProp(name = "isRunning")
+    public void setIsRunning(WikitudeView view, boolean isRunning){
+        Log.d(TAG,"set Is running to " + isRunning);
+    }
+    @ReactProp(name = "feature")
+    public void setFeature(WikitudeView view, int feature){
+        // TODO
+    }
+    @ReactProp(name = "url")
+    public void setUrl(WikitudeView view, String url) {
+        Log.d(TAG,"Setting url:"+url);
+        view.setUrl(url);
+    }
+    @ReactProp(name = "licenseKey")
+    public void setLicenseKey(WikitudeView view,String licenseKey) {
+        Log.d(TAG,"Setting License"+licenseKey);
+        view.setLicenseKey(licenseKey);
+    }
+
+    /**
+     * Required by React Native; this is how to knows what Class to call.
+     * @return
+     */
+    @Override
+    public String getName() {
+        return REACT_CLASS;
+    }
+
+    public WikitudeView getWikitudeView(){
+        return this.wikitude;
+    }
+
+    public void setActivity(Activity activity){
+        this.activity = activity;
+        //wikitude = new WikitudeView(this.activity,this.ctx,this.licenseKey);
+    }
+
     final ActivityEventListener mActivityEventListener = new BaseActivityEventListener() {
         @Override
         public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent intent) {
@@ -82,54 +129,32 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
         }
     };
 
+    // Event listener for react LifeCycle methods
     final LifecycleEventListener mLifeEventListener = new LifecycleEventListener() {
-
         @Override
         public void onHostResume() {
             if(wikitude != null){
                 Log.d(TAG,"onResume Wikitude");
-                //wikitude.loadWorld();
-                //wikitude.onResume();
-                //wikitude.loadWorld();
-                //it works like this
             }
         }
-
         @Override
         public void onHostPause() {
-            if(wikitude != null)
-            {
+            if(wikitude != null) {
                 Log.d(TAG,"onPause Wikitude");
-                //wikitude.onPause();
             }
-
         }
-
         @Override
         public void onHostDestroy() {
             if(wikitude != null){
                 Log.d(TAG,"onDestroy Wikitude");
-                //wikitude.clearCache();
-                //wikitude.onDestroy();
             }
-
         }
     };
-    public WikitudeViewManager(ReactApplicationContext context){
-        super();
-        this.ctx = context;
-    }
 
-    public static final String REACT_CLASS = "RNWikitude";
 
-    public void setActivity(Activity activity){
-        this.activity = activity;
-        //wikitude = new WikitudeView(this.activity,this.ctx,this.licenseKey);
-    }
-    @Override
-    public String getName() {
-      return REACT_CLASS;
-    }
+
+
+
     @Override
     public WikitudeView createViewInstance(ThemedReactContext context) {
 
@@ -137,16 +162,10 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
         wikitude = new WikitudeView(activity,context,this.licenseKey,this);
         
         this.ctx = context;
-        //architectView = wikitude;
         wikitude.addArchitectJavaScriptInterfaceListener(this);
-        //wikitude.registerWorldLoadedListener(this);
-        //wikitude.onPostCreate();
-        //context.addActivityEventListener(mActivityEventListener);
+
         context.addLifecycleEventListener(mLifeEventListener);
 
-        /*
-        this.container = new ConstraintLayout(context);
-        this.container.addView(wikitude);*/
        // return this.container;
         return wikitude;
     }
@@ -154,7 +173,7 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
     @Nullable
     @Override
     public Map<String, Integer> getCommandsMap() {
-        Map<String, Integer> commandMap = MapBuilder.of(
+        return MapBuilder.of(
                 "setUrlMode",
                 COMMAND_SET_URL,
                 "callJSMode",
@@ -167,11 +186,10 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
                 COMMAND_RESUME_AR,
                 "captureScreen",
                 COMMAND_CAPTURE_SCREEN);
-        return commandMap;
     }
-    public WikitudeView getWikitudeView(){
-        return this.wikitude;
-    }
+
+
+
     @ReactMethod
     public void setNewUrl(String url){
         if(this.wikitude != null){
@@ -181,7 +199,7 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
                 Runnable myRunnable = new Runnable() {
                     @Override
                     public void run() {
-                            Log.d(TAG,"Changge url");
+                            Log.d(TAG,"Changed url to " + url);
                             wikitude.loadWorld();
                     }
                 };
@@ -226,27 +244,8 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
             }
         }
     }
-    
-    @ReactProp(name = "isRunning")
-    public void setIsRunning(WikitudeView view, boolean isRunning){
-        Log.d(TAG,"set Is running"+isRunning);
-    }
-    @ReactProp(name = "feature")
-    public void setFeature(WikitudeView view, int feature){
 
-    }
 
-    @ReactProp(name = "url")
-    public void setUrl(WikitudeView view, String url) {
-            Log.d(TAG,"Setting url:"+url);
-            view.setUrl(url);
-    }
-
-    @ReactProp(name = "licenseKey")
-    public void setLicenseKey(WikitudeView view,String licenseKey) {
-        Log.d(TAG,"Setting License"+licenseKey);
-        view.setLicenseKey(licenseKey);
-    }
     @Override
     public void onDropViewInstance(WikitudeView view) {
         super.onDropViewInstance(view);
@@ -274,8 +273,6 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
             };
             mainHandler.post(myRunnable);
         }
-        
-
     }
     public Thread getThreadByName(String threadName) {
         for (Thread t : Thread.getAllStackTraces().keySet()) {
@@ -375,10 +372,11 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
     }
 
     @Override
-    public void worldLoadFailed(int i, String s, String s1) {
+    public void worldLoadFailed(int error_code, String desc, String fail_url) {
         WritableMap event = Arguments.createMap();
-        event.putString("message",s);
-        Log.e("Wikitude",s);
+        String message = error_code + ": " + desc + " + " + fail_url;
+        event.putString("message", message);
+        Log.e("Wikitude",message);
         ReactContext reactContext = this.ctx;
         reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
                 wikitude.getId(),
@@ -386,38 +384,32 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
                 event);
     }
 
-    //Commands methds
-
+    //Commands methods
     @Override
     public void receiveCommand(WikitudeView root, int commandId, @javax.annotation.Nullable ReadableArray args) {
-        //super.receiveCommand(root, commandId, args);
         switch (commandId){
             case COMMAND_SET_URL:
-                    /*
-                    String url = args.getString(0);
-
-                    if(!url.isEmpty())
-                        root.load(url);
-                        */
-                    root.setUrl(args.getString(0));
+                assert args != null;
+                root.setUrl(args.getString(0));
                 break;
             case COMMAND_CALL_JAVASCRIPT:
+                assert args != null;
                 root.callJavascript(args.getString(0));
                 break;
             case COMMAND_INJECT_LOCATION:
+                assert args != null;
                 root.setLocation(args.getDouble(0),args.getDouble(1),100f);
                 break;
             case COMMAND_RESUME_AR:
                 //without thread handling
                 root.onResume();
                 root.loadWorld();
-                //resumeAR();
                 break;
             case COMMAND_STOP_AR:
                 root.onPause();
-                //stopAR();
                 break;
             case COMMAND_CAPTURE_SCREEN:
+                assert args != null;
                 root.captureScreen(args.getBoolean(0));
                 break;
         }
@@ -441,11 +433,75 @@ class WikitudeView extends ArchitectView{
     public WikitudeView(Activity activity){
         super(activity);
     }
-    public WikitudeView(Activity activity,Context ctx,String licenseKey,WikitudeViewManager manager){
+    public WikitudeView(Activity activity, Context ctx, String licenseKey, WikitudeViewManager manager){
         super(activity);
         this.activity = activity;
         this.licenseKey = licenseKey;
         this.ctxManager = manager;
+    }
+
+    public void setUrl(String newUrl){
+        if(isUrl(newUrl)){
+            Log.d(TAG,"Received web URL");
+            this.url = newUrl;
+        }else{
+            Log.d(TAG,"Received local URL");
+            this.url = newUrl+".html";
+        }
+        this.loadWorld();
+    }
+    public void setLicenseKey(String license){
+        startUpConfig.setLicenseKey( license );
+        createWikitude();
+    }
+    public void setLat(Double lat){
+        this.lat = lat;
+    }
+    public void setLng(Double lng){
+        this.lng = lng;
+    }
+    public void updateLocation(){
+        this.setLocation(this.lat,this.lng,100f);
+    }
+    public void setJS(String s){
+        this.javascript = s;
+    }
+    public void callJS(){
+        this.callJavascript(this.javascript);
+    }
+
+    /**
+     * Loads the "world" i.e. the index JS file containing the view.
+     */
+    public void loadWorld(){
+        if(this.url.equals("")){
+            Log.i(TAG, "World URL not received yet.");
+            return;
+        }
+        try{
+            Log.d(TAG,this.url);
+            this.load(this.url);
+        }catch(IOException e){
+            Log.e(TAG,e.getMessage());
+        }
+        Log.i(TAG, "Loaded world " + this.url);
+    }
+
+    /**
+     * Performs a screen capture. Calls ArchitectView screencapture after determining mode.
+     * @param mode Capture mode to use.
+     */
+    public void captureScreen(Boolean mode){
+        int insideMode;
+        if(mode){
+            insideMode = ArchitectView.CaptureScreenCallback.CAPTURE_MODE_CAM_AND_WEBVIEW;
+        }else{
+            insideMode = ArchitectView.CaptureScreenCallback.CAPTURE_MODE_CAM;
+        }
+        Log.d(TAG,"CaptureScreen called, MODE: "+ String.valueOf(insideMode));
+
+        // calls ArchitectView captureScreen
+        this.captureScreen(insideMode, ctxManager);
     }
 
     public void createWikitude(){
@@ -463,54 +519,6 @@ class WikitudeView extends ArchitectView{
         }catch(Exception e){
             return false;
         }
-    }
-    public void setUrl(String newUrl){
-        if(isUrl(newUrl)){
-            Log.d(TAG,"Web URL");
-            this.url = newUrl;
-        }else{
-            Log.d(TAG,"Local URL");
-            this.url = newUrl+".html";
-        }
-        this.loadWorld();
-    }
-    public void setLicenseKey(String license){
-        startUpConfig.setLicenseKey( license );
-        createWikitude();
-    }
-    public void captureScreen(Boolean mode){
-        int insideMode;
-        if(mode){
-            insideMode = ArchitectView.CaptureScreenCallback.CAPTURE_MODE_CAM_AND_WEBVIEW;
-        }else{
-            insideMode = ArchitectView.CaptureScreenCallback.CAPTURE_MODE_CAM;
-        }
-        Log.d(TAG,"CaptureScreen called, MODE: "+ String.valueOf(insideMode));
-        this.captureScreen(insideMode,ctxManager);
-    }
-    public void loadWorld(){
-        try{
-            Log.d(TAG,this.url);
-            this.load(this.url);
-        }catch(IOException e){
-            Log.e(TAG,e.getMessage());
-        }
-        
-    }
-    public void setLat(Double lat){
-        this.lat = lat;
-    }
-    public void setLng(Double lng){
-        this.lng = lng;
-    }
-    public void updateLocation(){
-        this.setLocation(this.lat,this.lng,100f);
-    }
-    public void setJS(String s){
-        this.javascript = s;
-    }
-    public void callJS(){
-        this.callJavascript(this.javascript);
     }
 }
 
