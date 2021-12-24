@@ -9,29 +9,29 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/joaquinlom/react-native-wikitude-sdk.git",
-    "baseUrl": "https://github.com/joaquinlom/react-native-wikitude-sdk"
+    "url": "git+https://github.com/austinnebel/react-native-wikitude-sdk.git",
+    "baseUrl": "https://github.com/austinnebel/react-native-wikitude-sdk"
   },
   "keywords": [
     "react-native"
   ],
   "author": {
-    "name": "joaquinlom",
-    "email": "jvaldez.lom@gmail.com"
+    "name": "austinnebel",
+    "email": "nebelaustinm@gmail.com"
   },
   "license": "MIT",
   "licenseFilename": "LICENSE",
   "readmeFilename": "README.md",
   "peerDependencies": {
-    "react": "^16.8.1",
+    "react": "^17.0.2",
     "react-native": ">=0.60.0-rc.0 <1.0.x"
   },
   "devDependencies": {
-    "react": "^16.9.0",
-    "react-native": "^0.61.5"
+    "react": "^17.0.2",
+    "react-native": "^0.66.4",
   },
   "dependencies": {
-    "prop-types": "^15.7.2",
+    "prop-types": "^15.8.0",
     "react-native-permissions": "^2.1.5"
   }
 }
