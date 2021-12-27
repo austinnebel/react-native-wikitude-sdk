@@ -9,6 +9,8 @@ import android.graphics.Color;
 import android.graphics.Bitmap;
 import android.os.Handler;
 import android.os.Looper;
+
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
@@ -53,7 +55,17 @@ import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Map;
 
-public class WikitudeViewManager extends SimpleViewManager<WikitudeView> implements ArchitectJavaScriptInterfaceListener, ArchitectView.ArchitectWorldLoadedListener, ArchitectView.CaptureScreenCallback {
+/**
+ * This class is what handles creating new WikitudeView instances on the React-Native side.
+ * It extends SimpleViewManager and implements Wikitude's Architect classes.
+ *
+ * See more at: https://reactnative.dev/docs/native-components-android#1-create-the-viewmanager-subclass
+ *         And: https://reactnative.dev/docs/native-components-android#3-create-the-viewmanager-subclass
+ */
+public class WikitudeViewManager
+        extends SimpleViewManager<WikitudeView>
+        implements ArchitectJavaScriptInterfaceListener, ArchitectView.ArchitectWorldLoadedListener, ArchitectView.CaptureScreenCallback {
+
     //Commands
     public static final int COMMAND_SET_URL = 1;
     public static final int COMMAND_CALL_JAVASCRIPT = 2;
@@ -72,6 +84,8 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
     ConstraintLayout container;
     Boolean firstTime = true;
     Boolean hasCameraPermission = false;
+
+    // Log tag
     private final String TAG ="WikitudeViewManager";
 
     // Value used to access this class in React
@@ -83,7 +97,38 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
         this.ctx = context;
     }
 
-    // Props for React-Native access
+    /**
+     * This function is called when a new WikitudeView needs to be created by this manager.
+     * @param context ThemedReactContext
+     * @return WikitudeView A new Wikitude View instance.
+     */
+    @NonNull
+    @Override
+    public WikitudeView createViewInstance(ThemedReactContext context) {
+
+        this.activity  = context.getCurrentActivity();
+
+        // Views should be created in a default state, and later updated by a followup call to updateView
+        wikitude = new WikitudeView(activity, context, this.licenseKey,this);
+
+        this.ctx = context;
+        wikitude.addArchitectJavaScriptInterfaceListener(this);
+
+        context.addLifecycleEventListener(mLifeEventListener);
+
+        // return this.container;
+        return wikitude;
+    }
+
+    /**
+     * Below are the props for React-Native access. The `name` property is
+     * the name of the accessor on the JS side. All setter methods should be
+     * public, return void, include a view as its first argument, and the set
+     * parameter as its second argument.
+     *
+     * See more at: https://reactnative.dev/docs/native-components-android#3-expose-view-property-setters-using-reactprop-or-reactpropgroup-annotation
+     */
+
     @ReactProp(name = "isRunning")
     public void setIsRunning(WikitudeView view, boolean isRunning){
         Log.d(TAG,"set Is running to " + isRunning);
@@ -105,8 +150,9 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
 
     /**
      * Required by React Native; this is how to knows what Class to call.
-     * @return
+     * @return String
      */
+    @NonNull
     @Override
     public String getName() {
         return REACT_CLASS;
@@ -118,7 +164,6 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
 
     public void setActivity(Activity activity){
         this.activity = activity;
-        //wikitude = new WikitudeView(this.activity,this.ctx,this.licenseKey);
     }
 
     final ActivityEventListener mActivityEventListener = new BaseActivityEventListener() {
@@ -151,25 +196,14 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
         }
     };
 
-
-
-
-
-    @Override
-    public WikitudeView createViewInstance(ThemedReactContext context) {
-
-        this.activity  = context.getCurrentActivity();
-        wikitude = new WikitudeView(activity,context,this.licenseKey,this);
-        
-        this.ctx = context;
-        wikitude.addArchitectJavaScriptInterfaceListener(this);
-
-        context.addLifecycleEventListener(mLifeEventListener);
-
-       // return this.container;
-        return wikitude;
-    }
-
+    /**
+     * Maps command constants to function names.
+     *
+     * Example: MapBuilder.of("create", COMMAND_CREATE);
+     *      maps the `create` function to an integer `COMMAND_CREATE`.
+     *
+     * @return java.util.Map<K, V>
+     */
     @Nullable
     @Override
     public Map<String, Integer> getCommandsMap() {
@@ -188,7 +222,43 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
                 COMMAND_CAPTURE_SCREEN);
     }
 
-
+    /**
+     * Handles all commands defined/mapped in `getCommandsMap`.
+     * These are originally called in JS and are automatically sent here.
+     *
+     * @param root The WikitudeView that called the command.
+     * @param commandId ID of the command called.
+     * @param args Args passed with the command.
+     */
+    @Override
+    public void receiveCommand(@NonNull WikitudeView root, int commandId, @javax.annotation.Nullable ReadableArray args) {
+        switch (commandId){
+            case COMMAND_SET_URL:
+                assert args != null;
+                root.setUrl(args.getString(0));
+                break;
+            case COMMAND_CALL_JAVASCRIPT:
+                assert args != null;
+                root.callJavascript(args.getString(0));
+                break;
+            case COMMAND_INJECT_LOCATION:
+                assert args != null;
+                root.setLocation(args.getDouble(0),args.getDouble(1),100f);
+                break;
+            case COMMAND_RESUME_AR:
+                //without thread handling
+                root.onResume();
+                root.loadWorld();
+                break;
+            case COMMAND_STOP_AR:
+                root.onPause();
+                break;
+            case COMMAND_CAPTURE_SCREEN:
+                assert args != null;
+                root.captureScreen(args.getBoolean(0));
+                break;
+        }
+    }
 
     @ReactMethod
     public void setNewUrl(String url){
@@ -247,7 +317,7 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
 
 
     @Override
-    public void onDropViewInstance(WikitudeView view) {
+    public void onDropViewInstance(@NonNull WikitudeView view) {
         super.onDropViewInstance(view);
         Log.d(TAG,"Dropping View");
         try{
@@ -299,27 +369,33 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
         
     }
 
+    /**
+     * This maps native events called inside receiveEvent() to React callback functions.
+     *
+     * For example:
+     *      ```
+     *      MapBuilder.builder()
+     *          .put("onReceived",
+     *              MapBuilder.of("phasedRegistrationNames", MapBuilder.of("bubbled", "onJsonReceived")))
+     *      ```
+     * Will map the onReceived native event to the onJsonReceived callback prop in React.
+     *
+     * See more at: https://reactnative.dev/docs/native-components-android#events
+     *
+     * @return MapBuilder.Builder
+     */
     @Override
     public Map getExportedCustomBubblingEventTypeConstants() {
         return MapBuilder.builder()
-                .put(
-                        "onJsonReceived",
-                        MapBuilder.of(
-                                "phasedRegistrationNames",
-                        MapBuilder.of("bubbled", "onJsonReceived")))
-                .put(
-                "onFinishLoading",
-                         MapBuilder.of(
-                        "phasedRegistrationNames",
-                        MapBuilder.of("bubbled", "onFinishLoading"))).
-                 put(
-                     "onFailLoading",
-                         MapBuilder.of( "phasedRegistrationNames",MapBuilder.of("bubbled", "onFailLoading")))
-                .put(
-                    "onScreenCaptured",
-                    MapBuilder.of("phasedRegistrationNames",MapBuilder.of("bubbled","onScreenCaptured"))
-                )
-                .build();
+                .put("onJsonReceived",
+                    MapBuilder.of("phasedRegistrationNames",   MapBuilder.of("bubbled", "onJsonReceived")))
+                .put("onFinishLoading",
+                    MapBuilder.of("phasedRegistrationNames",   MapBuilder.of("bubbled", "onFinishLoading"))).
+                 put("onFailLoading",
+                    MapBuilder.of( "phasedRegistrationNames",  MapBuilder.of("bubbled", "onFailLoading")))
+                .put("onScreenCaptured",
+                    MapBuilder.of("phasedRegistrationNames",   MapBuilder.of("bubbled", "onScreenCaptured"))
+                ).build();
     }
 
     @Override
@@ -341,6 +417,12 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
                 event);        
     }
 
+    /**
+     * Event handler for parsing JSON.
+     * Is linked to `onJsonReceived` event in React.
+     *
+     * @param jsonObject JSON that was received.
+     */
     @Override
     public void onJSONObjectReceived(JSONObject jsonObject) {
         Log.d("Wikitude onJsonReceived","jsonObject receive");
@@ -350,70 +432,55 @@ public class WikitudeViewManager extends SimpleViewManager<WikitudeView> impleme
             map = JsonConvert.jsonToReact(jsonObject);
 
             ReactContext reactContext = this.ctx;
-            reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
-                    this.wikitude.getId(),
-                    "onJsonReceived",
-                    map);
+            reactContext
+                    .getJSModule(RCTEventEmitter.class)
+                    .receiveEvent(this.wikitude.getId(), "onJsonReceived", map);
         }catch(org.json.JSONException ex){
-            System.out.println("Exception: " + ex);
+            System.out.println("Exception while parsing received JSON: " + ex);
         }
     }
 
+    /**
+     * Event handler for when a world loaded successfully.
+     * Is linked to `onFinishLoading` event in React.
+     *
+     * @param s Message to send with event.
+     */
     @Override
     public void worldWasLoaded(String s) {
         WritableMap event = Arguments.createMap();
         event.putString("message",s);
-        ReactContext reactContext = this.ctx;
+
         Log.d(TAG,"World Loaded");
-        reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
-                this.wikitude.getId(),
-                "onFinishLoading",
-                event);
+
+        ReactContext reactContext = this.ctx;
+        reactContext
+                .getJSModule(RCTEventEmitter.class)
+                .receiveEvent(this.wikitude.getId(), "onFinishLoading", event);
     }
 
+    /**
+     * Event handler when world loading fails.
+     * Is linked to `onFailLoading` event in React.
+     *
+     * @param error_code Error code of fail event.
+     * @param desc Description of what happened.
+     * @param fail_url The url of the world that failed to load.
+     */
     @Override
     public void worldLoadFailed(int error_code, String desc, String fail_url) {
         WritableMap event = Arguments.createMap();
         String message = error_code + ": " + desc + " + " + fail_url;
         event.putString("message", message);
+
         Log.e("Wikitude",message);
+
         ReactContext reactContext = this.ctx;
-        reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
-                wikitude.getId(),
-                "onFailLoading",
-                event);
+        reactContext
+                .getJSModule(RCTEventEmitter.class)
+                .receiveEvent(this.wikitude.getId(), "onFailLoading", event);
     }
 
-    //Commands methods
-    @Override
-    public void receiveCommand(WikitudeView root, int commandId, @javax.annotation.Nullable ReadableArray args) {
-        switch (commandId){
-            case COMMAND_SET_URL:
-                assert args != null;
-                root.setUrl(args.getString(0));
-                break;
-            case COMMAND_CALL_JAVASCRIPT:
-                assert args != null;
-                root.callJavascript(args.getString(0));
-                break;
-            case COMMAND_INJECT_LOCATION:
-                assert args != null;
-                root.setLocation(args.getDouble(0),args.getDouble(1),100f);
-                break;
-            case COMMAND_RESUME_AR:
-                //without thread handling
-                root.onResume();
-                root.loadWorld();
-                break;
-            case COMMAND_STOP_AR:
-                root.onPause();
-                break;
-            case COMMAND_CAPTURE_SCREEN:
-                assert args != null;
-                root.captureScreen(args.getBoolean(0));
-                break;
-        }
-    }
 }
 
 class WikitudeView extends ArchitectView{
