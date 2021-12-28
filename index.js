@@ -11,16 +11,31 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import NativeFunctions from './res/functionMaps';
 
+/**
+ * Base class for using the wikitude SDK.
+ *
+ * To implement this you can create a component that
+ * creates necessary configurations and returns something
+ * like this:
+ *      <WikitudeView
+ *         ref={wikitudeView}
+ *         licenseKey={config.licenseKey}
+ *         url={config.url}
+ *         style={styles.AR}
+ *         onFailLoading={onFailLoading}
+ *         onJsonReceived={onJsonReceived}
+ *         onFinishLoading={onFinishLoading}
+ *         onScreenCaptured={onScreenCaptured}
+ *       />
+ */
 class WikitudeView extends React.Component {
   constructor(props) {
     super(props);
 
     this.state = {hasCameraPermissions: false, isRunning: false};
-    this.requestPermission = this.requestPermission.bind(this);
   }
 
   async componentDidMount() {
-    await this.requestPermission();
     console.log('didmount Wikitude SDK index.js');
 
     //Sometimes the resume is not calling because the references is wrong
@@ -38,30 +53,6 @@ class WikitudeView extends React.Component {
     //this.resumeRendering();
   }
 
-  requestPermission = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.CAMERA,
-          {
-            title: 'Wikitude Needs the Camera',
-            message: 'Wikitude needs the camaera to show cool AR',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
-          },
-        );
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          this.setState({hasCameraPermissions: true});
-        } else {
-          this.setState({hasCameraPermissions: false});
-        }
-      } catch (err) {
-        console.warn(err);
-      }
-    }
-  };
-
   // returns if this device supports the specified feature
   isDeviceSupportingFeature = feature => {
     if (Platform.OS === 'android') {
@@ -76,18 +67,13 @@ class WikitudeView extends React.Component {
   /**
    * Calls a method on native Wikitude code.
    *
-   * First, this method determines whether the user has permission to
-   * use the Wikitude instance, then it determines the command to use based
-   * on the current platform OS.
+   * It determines the command to use based on the current platform OS.
    *
    * @param {NativeFunctions} command The native function to call.
    * @param {list} params A list of parameters to pass to the native function.
    * @returns
    */
   callNative = (command, params: list) => {
-    if (this.hasPermission()) {
-      return;
-    }
     let platformCommand = command[Platform.OS];
 
     UIManager.dispatchViewManagerCommand(
@@ -98,7 +84,6 @@ class WikitudeView extends React.Component {
   };
 
   setWorldUrl = function (newUrl) {
-    console.log('Set WORLD component');
     this.callNative(NativeFunctions.setUrl, [newUrl]);
   };
 
@@ -121,37 +106,30 @@ class WikitudeView extends React.Component {
 
   onJsonReceived = event => {
     if (!this.props.onJsonReceived) {
-      return;
+      this.props.onJsonReceived(event.nativeEvent);
     }
-    // process native event
-    this.props.onJsonReceived(event.nativeEvent);
   };
 
   onFinishLoading = event => {
-    if (!this.props.onFinishLoading) {
-      return;
+    if (this.props.onFinishLoading) {
+      this.props.onFinishLoading(event.nativeEvent);
     }
-    this.props.onFinishLoading(event.nativeEvent);
 
-    if (Platform.OS === 'android') {
-      //this.resumeRendering();
-    } else {
+    if (Platform.OS !== 'android') {
       this.resumeRendering();
     }
   };
 
   onFailLoading = event => {
-    if (!this.props.onFailLoading) {
-      return;
+    if (this.props.onFailLoading) {
+      this.props.onFailLoading(event.nativeEvent);
     }
-    this.props.onFailLoading(event.nativeEvent);
   };
 
   onScreenCaptured = event => {
     if (!this.props.onScreenCaptured) {
-      return;
+      this.props.onScreenCaptured(event.nativeEvent);
     }
-    this.props.onScreenCaptured(event.nativeEvent);
   };
 
   captureScreen = mode => {
@@ -164,18 +142,8 @@ class WikitudeView extends React.Component {
     }
     return true;
   };
+
   render() {
-    const hasPermission = this.state.hasCameraPermissions;
-
-    // only android needs button to request permission
-    if (Platform.OS === 'android') {
-      if (!hasPermission) {
-        return (
-          <Button title="Request Permission" onPress={this.requestPermission} />
-        );
-      }
-    }
-
     return (
       <WKTView
         ref={e => (this.wikitudeRef = e)}
