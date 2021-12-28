@@ -22,6 +22,25 @@ class WikitudeView extends React.Component {
   }
 
   async componentDidMount() {
+    await this.requestPermission();
+    console.log('didmount Wikitude SDK index.js');
+
+    //Sometimes the resume is not calling because the references is wrong
+    this.resumeRendering();
+  }
+
+  componentWillUnmount() {
+    console.log('RN-SDK: componentWillUnmount');
+    this.stopRendering();
+  }
+
+  componentDidUpdate() {
+    console.log('RN-SDK: ComponentDidUpdate');
+    console.log('RN-SDK: Value of URL: ', this.props.url);
+    //this.resumeRendering();
+  }
+
+  requestPermission = async () => {
     if (Platform.OS === 'android') {
       try {
         const granted = await PermissionsAndroid.request(
@@ -39,43 +58,6 @@ class WikitudeView extends React.Component {
         } else {
           this.setState({hasCameraPermissions: false});
         }
-      } catch (err) {
-        console.warn(err);
-      }
-    }
-    console.log('didmount Wikitude SDK index.js');
-    //Sometimes the resume is not calling because the references is wrong
-
-    this.resumeRendering();
-  }
-
-  componentWillUnmount() {
-    console.log('RN-SDK: componentWillUnmount');
-    this.stopRendering();
-  }
-
-  componentDidUpdate() {
-    console.log('RN-SDK: ComponentDidUpdate');
-    console.log('RN-SDK: Value of URL: ', this.props.url);
-    //this.resumeRendering();
-  }
-
-  requestPermission = function () {
-    if (Platform.OS === 'android') {
-      try {
-        PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA, {
-          title: 'Wikitude Needs the Camera',
-          message: 'Wikitude needs the camera to use AR',
-          buttonNeutral: 'Ask Me Later',
-          buttonNegative: 'Cancel',
-          buttonPositive: 'OK',
-        }).then(granted => {
-          if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-            this.setState({hasCameraPermissions: true});
-          } else {
-            this.setState({hasCameraPermissions: false});
-          }
-        });
       } catch (err) {
         console.warn(err);
       }
