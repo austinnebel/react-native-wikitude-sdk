@@ -16,6 +16,9 @@ class WikitudeView extends React.Component {
 
     this.state = {hasCameraPermissions: false, isRunning: false};
     this.requestPermission = this.requestPermission.bind(this);
+
+    this.iosCommands = UIManager.getViewManagerConfig('RNWikitude').Commands;
+    this.androidCommands = UIManager.RNWikitude.Commands;
   }
 
   async componentDidMount() {
@@ -47,13 +50,13 @@ class WikitudeView extends React.Component {
   }
 
   componentWillUnmount() {
-    console.log('componentWillUnmount');
+    console.log('RN-SDK: componentWillUnmount');
     this.stopRendering();
   }
 
   componentDidUpdate() {
-    console.log('ComponentDidUpdate');
-    console.log('Value of URL: ', this.props.url);
+    console.log('RN-SDK: ComponentDidUpdate');
+    console.log('RN-SDK: Value of URL: ', this.props.url);
     //this.resumeRendering();
   }
 
@@ -62,7 +65,7 @@ class WikitudeView extends React.Component {
       try {
         PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA, {
           title: 'Wikitude Needs the Camera',
-          message: 'Wikitude needs the camaera to use AR',
+          message: 'Wikitude needs the camera to use AR',
           buttonNeutral: 'Ask Me Later',
           buttonNegative: 'Cancel',
           buttonPositive: 'OK',
@@ -90,99 +93,64 @@ class WikitudeView extends React.Component {
     }
   };
 
+  callAndroid = (command, params) => {
+    if (this.state.hasCameraPermissions) {
+      UIManager.dispatchViewManagerCommand(
+        findNodeHandle(this.refs.wikitudeView),
+        command,
+        params,
+      );
+    }
+  };
+  callIOS = (command, params) => {
+    UIManager.dispatchViewManagerCommand(
+      findNodeHandle(this.refs.wikitudeRef),
+      command,
+      params,
+    );
+  };
+
   setWorldUrl = function (newUrl) {
     console.log('Set WORLD component');
     //this.stopRendering();
     if (Platform.OS === 'android') {
-      if (this.state.hasCameraPermissions) {
-        UIManager.dispatchViewManagerCommand(
-          findNodeHandle(this.refs.wikitudeView),
-          UIManager.RNWikitude.Commands.setUrlMode,
-          [newUrl],
-        );
-      }
+      this.callAndroid(this.androidCommands.setUrlMode, [newUrl]);
     } else if (Platform.OS === 'ios') {
-      UIManager.dispatchViewManagerCommand(
-        findNodeHandle(this.refs.wikitudeRef),
-        UIManager.getViewManagerConfig('RNWikitude').Commands.setUrl,
-        [newUrl],
-      );
+      this.callIOS(this.iosCommands.setUrl, [newUrl]);
     }
   };
 
   callJavascript = function (js) {
     if (Platform.OS === 'android') {
-      if (this.state.hasCameraPermissions) {
-        UIManager.dispatchViewManagerCommand(
-          findNodeHandle(this.refs.wikitudeView),
-          UIManager.RNWikitude.Commands.callJSMode,
-          [js],
-        );
-      }
+      this.callAndroid(this.androidCommands.callJSMode, [js]);
     } else if (Platform.OS === 'ios') {
-      //return  NativeModules.RNWikitude.callJavascript(findNodeHandle(this.wikitudeRef),js);
-
-      UIManager.dispatchViewManagerCommand(
-        findNodeHandle(this.wikitudeRef),
-        UIManager.getViewManagerConfig('RNWikitude').Commands.callJavascript,
-        [js],
-      );
+      this.callIOS(this.iosCommands.callJavascript, [js]);
     }
   };
 
   injectLocation = function (lat, lng) {
     if (Platform.OS === 'android') {
-      if (this.state.hasCameraPermissions) {
-        UIManager.dispatchViewManagerCommand(
-          findNodeHandle(this.refs.wikitudeView),
-          UIManager.RNWikitude.Commands.injectLocationMode,
-          [lat, lng],
-        );
-      }
+      this.callAndroid(this.androidCommands.injectLocationMode, [lat, lng]);
     } else {
-      UIManager.dispatchViewManagerCommand(
-        findNodeHandle(this.wikitudeRef),
-        UIManager.getViewManagerConfig('RNWikitude').Commands.injectLocation,
-        [lat, lng],
-      );
+      this.callIOS(this.iosCommands.injectLocation, [lat, lng]);
     }
   };
 
   stopRendering = function () {
     if (Platform.OS === 'android') {
-      if (this.state.hasCameraPermissions) {
-        UIManager.dispatchViewManagerCommand(
-          findNodeHandle(this),
-          UIManager.RNWikitude.Commands.stopARMode,
-          [],
-        );
-      }
+      this.callAndroid(this.androidCommands.stopARMode, []);
     } else {
-      UIManager.dispatchViewManagerCommand(
-        findNodeHandle(this.wikitudeRef),
-        UIManager.getViewManagerConfig('RNWikitude').Commands.stopAR,
-        [],
-      );
+      this.callIOS(this.iosCommands.stopAR, []);
     }
   };
 
   resumeRendering = function () {
-    console.log('Calling resumeRendering');
+    console.log('RN-SDK: Calling resumeRendering');
 
     if (Platform.OS === 'android') {
-      if (this.state.hasCameraPermissions) {
-        UIManager.dispatchViewManagerCommand(
-          findNodeHandle(this.refs.wikitudeView),
-          UIManager.RNWikitude.Commands.resumeARMode,
-          [],
-        );
-      }
+      this.callAndroid(this.androidCommands.resumeARMode, []);
     } else {
-      UIManager.dispatchViewManagerCommand(
-        findNodeHandle(this.wikitudeRef),
-        UIManager.getViewManagerConfig('RNWikitude').Commands.resumeAR,
-        [],
-      );
+      this.callIOS(this.iosCommands.resumeAR, []);
     }
   };
 
@@ -223,22 +191,9 @@ class WikitudeView extends React.Component {
 
   captureScreen = mode => {
     if (Platform.OS === 'android') {
-      if (this.state.hasCameraPermissions) {
-        UIManager.dispatchViewManagerCommand(
-          findNodeHandle(this.refs.wikitudeView),
-          UIManager.RNWikitude.Commands.captureScreen,
-          [mode],
-        );
-      }
+      this.callAndroid(this.androidCommands.captureScreen, [mode]);
     } else if (Platform.OS === 'ios') {
-      UIManager.dispatchViewManagerCommand(
-        findNodeHandle(this.wikitudeRef),
-        UIManager.getViewManagerConfig('RNWikitude').Commands.captureScreen,
-        [mode],
-      );
-      /*return  NativeModules.RNWikitude.captureScreen(mode,
-          findNodeHandle(this.refs.wikitudeView)
-        );*/
+      this.callIOS(this.iosCommands.captureScreen, [mode]);
     }
   };
 
