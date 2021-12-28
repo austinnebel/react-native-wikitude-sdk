@@ -86,7 +86,7 @@ class WikitudeView extends React.Component {
   };
   callIOS = (command, params) => {
     UIManager.dispatchViewManagerCommand(
-      findNodeHandle(this.refs.wikitudeRef),
+      findNodeHandle(this.wikitudeRef),
       command,
       params,
     );
