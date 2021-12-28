@@ -43,9 +43,6 @@ class WikitudeView extends React.Component {
     console.log('didmount Wikitude SDK index.js');
     //Sometimes the resume is not calling because the references is wrong
 
-    console.log('didmount Wikitude SDK index.js');
-
-    //Sometimes the resume is not calling because the references is wrong
     this.resumeRendering();
   }
 
@@ -82,6 +79,7 @@ class WikitudeView extends React.Component {
     }
   };
 
+  // returns if this device supports the specified feature
   isDeviceSupportingFeature = feature => {
     if (Platform.OS === 'android') {
     } else {
@@ -105,7 +103,7 @@ class WikitudeView extends React.Component {
       }
     } else if (Platform.OS === 'ios') {
       UIManager.dispatchViewManagerCommand(
-        findNodeHandle(this.wikitudeRef),
+        findNodeHandle(this.refs.wikitudeRef),
         UIManager.getViewManagerConfig('RNWikitude').Commands.setUrl,
         [newUrl],
       );
