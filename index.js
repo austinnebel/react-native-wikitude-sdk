@@ -19,6 +19,33 @@ class WikitudeView extends React.Component {
 
     this.iosCommands = UIManager.getViewManagerConfig('RNWikitude').Commands;
     this.androidCommands = UIManager.RNWikitude.Commands;
+
+    this.nativeFuncs = {
+      setUrl: {
+        android: this.androidCommands.setUrlMode,
+        ios: this.iosCommands.setUrl,
+      },
+      callJS: {
+        android: this.androidCommands.callJSMode,
+        ios: this.iosCommands.callJavascript,
+      },
+      injectLocation: {
+        android: this.androidCommands.injectLocationMode,
+        ios: this.iosCommands.injectLocation,
+      },
+      stopAR: {
+        android: this.androidCommands.stopARMode,
+        ios: this.iosCommands.stopAR,
+      },
+      resumeAR: {
+        android: this.androidCommands.resumeARMode,
+        ios: this.iosCommands.resumeAR,
+      },
+      captureScreen: {
+        android: this.androidCommands.captureScreen,
+        ios: this.iosCommands.captureScreen,
+      },
+    };
   }
 
   async componentDidMount() {
@@ -75,65 +102,44 @@ class WikitudeView extends React.Component {
     }
   };
 
-  callAndroid = (command, params) => {
-    if (this.state.hasCameraPermissions) {
+  callNative = (command, params) => {
+    if (Platform.OS === 'android') {
+      if (this.state.hasCameraPermissions) {
+        UIManager.dispatchViewManagerCommand(
+          findNodeHandle(this.refs.wikitudeView),
+          command.android,
+          params,
+        );
+      }
+    } else {
       UIManager.dispatchViewManagerCommand(
-        findNodeHandle(this.refs.wikitudeView),
-        command,
+        findNodeHandle(this.wikitudeRef),
+        command.ios,
         params,
       );
     }
   };
-  callIOS = (command, params) => {
-    UIManager.dispatchViewManagerCommand(
-      findNodeHandle(this.wikitudeRef),
-      command,
-      params,
-    );
-  };
 
   setWorldUrl = function (newUrl) {
     console.log('Set WORLD component');
-    //this.stopRendering();
-    if (Platform.OS === 'android') {
-      this.callAndroid(this.androidCommands.setUrlMode, [newUrl]);
-    } else if (Platform.OS === 'ios') {
-      this.callIOS(this.iosCommands.setUrl, [newUrl]);
-    }
+    this.callNative(this.nativeFuncs.setUrl, [newUrl]);
   };
 
   callJavascript = function (js) {
-    if (Platform.OS === 'android') {
-      this.callAndroid(this.androidCommands.callJSMode, [js]);
-    } else if (Platform.OS === 'ios') {
-      this.callIOS(this.iosCommands.callJavascript, [js]);
-    }
+    this.callNative(this.nativeFuncs.callJS, [js]);
   };
 
   injectLocation = function (lat, lng) {
-    if (Platform.OS === 'android') {
-      this.callAndroid(this.androidCommands.injectLocationMode, [lat, lng]);
-    } else {
-      this.callIOS(this.iosCommands.injectLocation, [lat, lng]);
-    }
+    this.callNative(this.nativeFuncs.injectLocation, [lat, lng]);
   };
 
   stopRendering = function () {
-    if (Platform.OS === 'android') {
-      this.callAndroid(this.androidCommands.stopARMode, []);
-    } else {
-      this.callIOS(this.iosCommands.stopAR, []);
-    }
+    this.callNative(this.nativeFuncs.stopAR, []);
   };
 
   resumeRendering = function () {
     console.log('RN-SDK: Calling resumeRendering');
-
-    if (Platform.OS === 'android') {
-      this.callAndroid(this.androidCommands.resumeARMode, []);
-    } else {
-      this.callIOS(this.iosCommands.resumeAR, []);
-    }
+    this.callNative(this.nativeFuncs.resumeAR, []);
   };
 
   onJsonReceived = event => {
@@ -172,11 +178,7 @@ class WikitudeView extends React.Component {
   };
 
   captureScreen = mode => {
-    if (Platform.OS === 'android') {
-      this.callAndroid(this.androidCommands.captureScreen, [mode]);
-    } else if (Platform.OS === 'ios') {
-      this.callIOS(this.iosCommands.captureScreen, [mode]);
-    }
+    this.callNative(this.nativeFuncs.captureScreen, [mode]);
   };
 
   render() {
