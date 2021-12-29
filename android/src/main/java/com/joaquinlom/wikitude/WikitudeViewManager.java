@@ -95,29 +95,60 @@ public class WikitudeViewManager
     public WikitudeViewManager(ReactApplicationContext context){
         super();
         this.ctx = context;
+        Log.d(TAG, "WikitudeViewManager instantiated.");
     }
 
     /**
-     * This function is called when a new WikitudeView needs to be created by this manager.
+     * Required by React Native; this is how to knows what Class to call.
+     * @return String
+     */
+    @NonNull
+    @Override
+    public String getName() {
+        return REACT_CLASS;
+    }
+
+    /**
+     * This function is called when a new WikitudeView is created in React.
      * @param context ThemedReactContext
      * @return WikitudeView A new Wikitude View instance.
      */
     @NonNull
     @Override
     public WikitudeView createViewInstance(ThemedReactContext context) {
-
+        this.ctx = context;
         this.activity  = context.getCurrentActivity();
 
         // Views should be created in a default state, and later updated by a followup call to updateView
-        wikitude = new WikitudeView(activity, context, this.licenseKey,this);
+        this.wikitude = new WikitudeView(this.activity, this.ctx, this.licenseKey,this);
+        // add JS listener so we can send the view JS code if needed
+        this.wikitude.addArchitectJavaScriptInterfaceListener(this);
+        // add lifecycle listener so that we can invoke lifecycle methods
+        this.ctx.addLifecycleEventListener(this.mLifeEventListener);
 
-        this.ctx = context;
-        wikitude.addArchitectJavaScriptInterfaceListener(this);
+        // return this.[container];
+        return this.wikitude;
+    }
 
-        context.addLifecycleEventListener(mLifeEventListener);
-
-        // return this.container;
-        return wikitude;
+    /**
+     * Called when view stops being rendered in React.
+     * @param view The view that stopped being rendered.
+     */
+    @Override
+    public void onDropViewInstance(@NonNull WikitudeView view) {
+        super.onDropViewInstance(view);
+        Log.d(TAG,"Dropping View");
+        try{
+            view.onPause();
+            view.clearCache();
+        }catch(Exception e){
+            Log.e(TAG,"Error pausing view: " + e);
+        }
+        try{
+            view.onDestroy();
+        }catch(Exception e){
+            Log.e(TAG,"Error destroying view: " + e);
+        }
     }
 
     /**
@@ -148,22 +179,23 @@ public class WikitudeViewManager
         view.setLicenseKey(licenseKey);
     }
 
-    /**
-     * Required by React Native; this is how to knows what Class to call.
-     * @return String
-     */
-    @NonNull
-    @Override
-    public String getName() {
-        return REACT_CLASS;
-    }
+    @ReactMethod
+    public void setNewUrl(String url){
+        if(this.wikitude != null){
+            if(this.activity != null ){
+                this.wikitude.setUrl(url);
+                Handler mainHandler = new Handler(this.activity.getMainLooper());
+                Runnable myRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.d(TAG,"Changed url to " + url);
+                        wikitude.loadWorld();
+                    }
+                };
+                mainHandler.post(myRunnable);
+            }
 
-    public WikitudeView getView(){
-        return this.wikitude;
-    }
-
-    public void setActivity(Activity activity){
-        this.activity = activity;
+        }
     }
 
     final ActivityEventListener mActivityEventListener = new BaseActivityEventListener() {
@@ -199,6 +231,7 @@ public class WikitudeViewManager
 
     /**
      * Maps command constants to React function names.
+     * These are then handled by receiveCommand().
      *
      * Example: MapBuilder.of("create", COMMAND_CREATE);
      *      maps the `create` function to an integer `COMMAND_CREATE`.
@@ -230,8 +263,9 @@ public class WikitudeViewManager
      * @param args Args passed with the command.
      */
     @Override
-    public void receiveCommand(@NonNull WikitudeView view, int commandId, @javax.annotation.Nullable ReadableArray args) {
-        Log.d(TAG, "Received command " + commandId);
+    public void receiveCommand(@NonNull WikitudeView view, int commandId, @Nullable ReadableArray args) {
+        Log.d(TAG, "Received command " + commandId + " from React.");
+        //int commandIdInt = Integer.parseInt(commandId);
         switch (commandId){
             case COMMAND_SET_URL:
                 assert args != null;
@@ -247,8 +281,8 @@ public class WikitudeViewManager
                 break;
             case COMMAND_RESUME_AR:
                 //without thread handling
+                Log.d(TAG, "Received onResume request from React.");
                 view.onResume();
-                Log.d(TAG, "ON RESUME CALLED");
                 view.loadWorld();
                 break;
             case COMMAND_STOP_AR:
@@ -258,27 +292,38 @@ public class WikitudeViewManager
                 assert args != null;
                 view.captureScreen(args.getBoolean(0));
                 break;
+            default:
+                Log.e(TAG, "Invalid command " + commandId + " received from React.");
         }
     }
 
-    @ReactMethod
-    public void setNewUrl(String url){
-
-        if(this.wikitude != null){
-            if(this.activity != null ){
-                this.wikitude.setUrl(url);
-                Handler mainHandler = new Handler(this.activity.getMainLooper());
-                Runnable myRunnable = new Runnable() {
-                    @Override
-                    public void run() {
-                            Log.d(TAG,"Changed url to " + url);
-                            wikitude.loadWorld();
-                    }
-                };
-                mainHandler.post(myRunnable);
-            }
-            
-        }
+    /**
+     * This maps native events called inside receiveEvent() to React callback functions.
+     *
+     * For example:
+     *      ```
+     *      MapBuilder.builder()
+     *          .put("onReceived",
+     *              MapBuilder.of("phasedRegistrationNames", MapBuilder.of("bubbled", "onJsonReceived")))
+     *      ```
+     * Will map the onReceived native event to the onJsonReceived callback prop in React.
+     *
+     * See more at: https://reactnative.dev/docs/native-components-android#events
+     *
+     * @return MapBuilder.Builder
+     */
+    @Override
+    public Map getExportedCustomBubblingEventTypeConstants() {
+        return MapBuilder.builder()
+                .put("onJsonReceived",
+                        MapBuilder.of("phasedRegistrationNames",   MapBuilder.of("bubbled", "onJsonReceived")))
+                .put("onFinishLoading",
+                        MapBuilder.of("phasedRegistrationNames",   MapBuilder.of("bubbled", "onFinishLoading"))).
+                        put("onFailLoading",
+                                MapBuilder.of( "phasedRegistrationNames",  MapBuilder.of("bubbled", "onFailLoading")))
+                .put("onScreenCaptured",
+                        MapBuilder.of("phasedRegistrationNames",   MapBuilder.of("bubbled", "onScreenCaptured"))
+                ).build();
     }
 
     public void setLocation(Double lat,Double lng){
@@ -318,22 +363,6 @@ public class WikitudeViewManager
     }
 
 
-    @Override
-    public void onDropViewInstance(@NonNull WikitudeView view) {
-        super.onDropViewInstance(view);
-        Log.d(TAG,"Dropping View");
-        try{
-            view.onPause();
-            view.clearCache();
-        }catch(Exception e){
-            Log.e(TAG,"Error pausing view: " + e);
-        }
-        try{
-            view.onDestroy();
-        }catch(Exception e){
-            Log.e(TAG,"Error destroying view: " + e);
-        }
-    }
     public void resumeAR(){
         if(this.activity != null ){
             Handler mainHandler = new Handler(this.activity.getMainLooper());
@@ -376,34 +405,11 @@ public class WikitudeViewManager
     }
 
     /**
-     * This maps native events called inside receiveEvent() to React callback functions.
+     * Event handler triggered when the screenCapture function is called..
+     * Is linked to `onJsonReceived` event in React.
      *
-     * For example:
-     *      ```
-     *      MapBuilder.builder()
-     *          .put("onReceived",
-     *              MapBuilder.of("phasedRegistrationNames", MapBuilder.of("bubbled", "onJsonReceived")))
-     *      ```
-     * Will map the onReceived native event to the onJsonReceived callback prop in React.
-     *
-     * See more at: https://reactnative.dev/docs/native-components-android#events
-     *
-     * @return MapBuilder.Builder
+     * @param image A bitmap image.
      */
-    @Override
-    public Map getExportedCustomBubblingEventTypeConstants() {
-        return MapBuilder.builder()
-                .put("onJsonReceived",
-                    MapBuilder.of("phasedRegistrationNames",   MapBuilder.of("bubbled", "onJsonReceived")))
-                .put("onFinishLoading",
-                    MapBuilder.of("phasedRegistrationNames",   MapBuilder.of("bubbled", "onFinishLoading"))).
-                 put("onFailLoading",
-                    MapBuilder.of( "phasedRegistrationNames",  MapBuilder.of("bubbled", "onFailLoading")))
-                .put("onScreenCaptured",
-                    MapBuilder.of("phasedRegistrationNames",   MapBuilder.of("bubbled", "onScreenCaptured"))
-                ).build();
-    }
-
     @Override
     public void onScreenCaptured(Bitmap image){
         //Bitmap to byte[]
