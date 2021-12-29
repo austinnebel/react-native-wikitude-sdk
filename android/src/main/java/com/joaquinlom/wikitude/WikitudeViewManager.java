@@ -412,7 +412,7 @@ public class WikitudeViewManager
         byte[] byteArray = byteArrayOutputStream .toByteArray();
         String encoded = Base64.encodeToString(byteArray, Base64.DEFAULT);
 
-        this.emitEvent("image", encoded);
+        this.emitEvent("image","onScreenCaptured", encoded);
     }
 
     /**
@@ -426,7 +426,7 @@ public class WikitudeViewManager
         Log.d("Wikitude onJsonReceived","jsonObject receive");
         try {
             WritableMap map = JsonConvert.jsonToReact(jsonObject);
-            this.emitEvent(map.toString());
+            this.emitEvent("onJsonReceived", map.toString());
         }catch(org.json.JSONException ex){
             Log.d(TAG, "Exception while parsing received JSON: " + ex);
         }
@@ -441,7 +441,7 @@ public class WikitudeViewManager
     @Override
     public void worldWasLoaded(String s) {
         Log.d(TAG,"World Loaded: " + s);
-        this.emitEvent(s);
+        this.emitEvent("onFinishLoading", s);
     }
 
     /**
@@ -457,42 +457,35 @@ public class WikitudeViewManager
         Log.e("Wikitude", "World loading failed for " + fail_url);
 
         String message = error_code + ": " + desc + " + " + fail_url;
-        this.emitEvent(message);
+        this.emitEvent("onFailLoading", message);
     }
 
     /**
-     * Sends an event to the React application.
-     *
+     * Sends an event message to the React application.
+     * @param eventName Name of event. Ex. 'onFailLoading' or 'onJsonReceived'
      * @param message Message to send.
      */
-    public void emitEvent(String message){
-        WritableMap event = Arguments.createMap();
-        event.putString("message", message);
-
-        Log.d("Wikitude", "Sending event message '" + message + "' to React");
-
-        ReactContext reactContext = this.ctx;
-        reactContext
-                .getJSModule(RCTEventEmitter.class)
-                .receiveEvent(this.wikitude.getId(), "onFailLoading", event);
+    public void emitEvent(String eventName, String message){
+        this.emitEvent("message", eventName, message);
     }
 
     /**
      * Sends an event to the React application.
      *
      * @param type Type of message. Ex. 'message' or 'image'
+     * @param eventName Name of event. Ex. 'onFailLoading' or 'onJsonReceived'
      * @param message Message to send.
      */
-    public void emitEvent(String type, String message){
+    public void emitEvent(String type, String eventName, String message){
         WritableMap event = Arguments.createMap();
         event.putString(type, message);
 
-        Log.d("Wikitude", "Sending event message '" + message + "' to React");
+        Log.d("Wikitude", "Sending '" + eventName + ":"+ type +"' event '" + message + "' to React");
 
         ReactContext reactContext = this.ctx;
         reactContext
                 .getJSModule(RCTEventEmitter.class)
-                .receiveEvent(this.wikitude.getId(), "onFailLoading", event);
+                .receiveEvent(this.wikitude.getId(), eventName, event);
     }
 }
 
