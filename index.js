@@ -83,49 +83,52 @@ class WikitudeView extends React.Component {
     );
   };
 
-  setWorldUrl = function (newUrl) {
+  setWorldUrl = newUrl => {
+    console.log('RN-SDK: Calling setWorldUrl');
     this.callNative(NativeFunctions.setUrl, [newUrl]);
   };
 
-  callJavascript = function (js) {
+  callJavascript = js => {
+    console.log('RN-SDK: Calling callJavascript');
     this.callNative(NativeFunctions.callJS, [js]);
   };
 
-  injectLocation = function (lat, lng) {
+  injectLocation = (lat, lng) => {
+    console.log('RN-SDK: Calling injectLocation');
     this.callNative(NativeFunctions.injectLocation, [lat, lng]);
   };
 
-  stopRendering = function () {
+  stopRendering = () => {
+    console.log('RN-SDK: Calling stopRendering');
     this.callNative(NativeFunctions.stopAR, []);
   };
 
-  resumeRendering = function () {
+  resumeRendering = () => {
     console.log('RN-SDK: Calling resumeRendering');
     this.callNative(NativeFunctions.resumeAR, []);
   };
 
+  // Below are the event handlers triggered by the native WikitudeViewManager class
+
   onJsonReceived = event => {
-    if (!this.props.onJsonReceived) {
+    console.log('RN-SDK: Calling onJsonReceived');
+    if (this.props.onJsonReceived) {
       this.props.onJsonReceived(event.nativeEvent);
     }
   };
-
   onFinishLoading = event => {
     if (this.props.onFinishLoading) {
       this.props.onFinishLoading(event.nativeEvent);
     }
-
     if (Platform.OS !== 'android') {
       this.resumeRendering();
     }
   };
-
   onFailLoading = event => {
     if (this.props.onFailLoading) {
       this.props.onFailLoading(event.nativeEvent);
     }
   };
-
   onScreenCaptured = event => {
     if (!this.props.onScreenCaptured) {
       this.props.onScreenCaptured(event.nativeEvent);
