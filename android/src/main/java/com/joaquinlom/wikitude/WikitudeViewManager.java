@@ -7,6 +7,8 @@ import android.os.Handler;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.lifecycle.Lifecycle;
+
 import android.util.Log;
 import android.util.Base64;
 import com.facebook.react.bridge.ActivityEventListener;
@@ -43,12 +45,12 @@ public class WikitudeViewManager
         implements ArchitectJavaScriptInterfaceListener, ArchitectView.ArchitectWorldLoadedListener, ArchitectView.CaptureScreenCallback {
 
     //Commands
-    public static final int COMMAND_SET_URL = 1;
-    public static final int COMMAND_CALL_JAVASCRIPT = 2;
-    public static final int COMMAND_INJECT_LOCATION = 3;
-    public static final int COMMAND_STOP_AR = 4;
-    public static final int COMMAND_RESUME_AR = 5;
-    public static final int COMMAND_CAPTURE_SCREEN = 6;
+    public static final String COMMAND_SET_URL = "setUrl";
+    public static final String COMMAND_CALL_JAVASCRIPT = "callJS";
+    public static final String COMMAND_INJECT_LOCATION = "injectLocation";
+    public static final String COMMAND_PAUSE_AR = "stopAR";
+    public static final String COMMAND_RESUME_AR = "resumeAR";
+    public static final String COMMAND_CAPTURE_SCREEN = "captureScreen";
     //public static final int COMMAND_GET_ANNOTATIONS = 4;
 
     WikitudeView wikitude;
@@ -87,6 +89,7 @@ public class WikitudeViewManager
     /**
      * This function is called when a new WikitudeView is created in React.
      * It creates the view in a default statue, it does not pass any props yet.
+     * Similar to componentDidMount; this executes directly before.
      * @param context ThemedReactContext
      * @return WikitudeView A new Wikitude View instance.
      */
@@ -108,23 +111,18 @@ public class WikitudeViewManager
 
     /**
      * Called when view stops being rendered in React.
+     * Similar to componentWillUnmount; this executes directly after.
      * @param view The view that stopped being rendered.
      */
     @Override
     public void onDropViewInstance(@NonNull WikitudeView view) {
         super.onDropViewInstance(view);
-        Log.d(TAG,"Dropping View");
-        try{
+        Log.d(TAG,"View was removed from screen.");
+        Lifecycle.State state = view.getLifecycle().getCurrentState();
+        if(state == Lifecycle.State.RESUMED){
             view.onPause();
-            view.clearCache();
-        }catch(Exception e){
-            Log.e(TAG,"Error pausing view: " + e);
         }
-        try{
-            view.onDestroy();
-        }catch(Exception e){
-            Log.e(TAG,"Error destroying view: " + e);
-        }
+        view.onDestroy();
     }
 
     /**
@@ -150,7 +148,7 @@ public class WikitudeViewManager
         view.setUrl(url);
     }
     @ReactProp(name = "licenseKey")
-    public void setLicenseKey(WikitudeView view,String licenseKey) {
+    public void setLicenseKey(WikitudeView view, String licenseKey) {
         Log.d(TAG,"Setting License"+licenseKey);
         view.setLicenseKey(licenseKey);
     }
@@ -170,10 +168,10 @@ public class WikitudeViewManager
                 };
                 mainHandler.post(myRunnable);
             }
-
         }
     }
 
+    // TODO: Either implement or remove this
     final ActivityEventListener mActivityEventListener = new BaseActivityEventListener() {
         @Override
         public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent intent) {
@@ -206,42 +204,14 @@ public class WikitudeViewManager
     };
 
     /**
-     * Maps command constants to React function names.
-     * These are then handled by receiveCommand().
-     *
-     * Example: MapBuilder.of("create", COMMAND_CREATE);
-     *      maps the `create` function to an integer `COMMAND_CREATE`.
-     *
-     *      To access this in react, you would pass UIManager.RNWikitude.Commands.create
-     *      to the UIManager.
-     *
-     * @return java.util.Map<K, V>
-     */
-    @Nullable
-    @Override
-    public Map<String, Integer> getCommandsMap() {
-        return MapBuilder.of(
-                "setUrlMode",           COMMAND_SET_URL,
-                "callJSMode",           COMMAND_CALL_JAVASCRIPT,
-                "injectLocationMode",   COMMAND_INJECT_LOCATION,
-                "stopARMode",           COMMAND_STOP_AR,
-                "resumeARMode",         COMMAND_RESUME_AR,
-                "captureScreen",        COMMAND_CAPTURE_SCREEN
-        );
-    }
-
-    /**
-     * Handles all commands defined/mapped in `getCommandsMap`.
-     * These are originally called in JS and are automatically sent here.
-     *
+     * Handles all commands sent from React using the UIManager.
      * @param view The Wikitude React view that called the command.
-     * @param commandId ID of the command called.
+     * @param commandId ID string of the command called. Ex. 'setURL'
      * @param args Args passed with the command.
      */
     @Override
-    public void receiveCommand(@NonNull WikitudeView view, int commandId, @Nullable ReadableArray args) {
+    public void receiveCommand(@NonNull WikitudeView view, String commandId, @Nullable ReadableArray args) {
         Log.d(TAG, "Received command " + commandId + " from React.");
-        //int commandIdInt = Integer.parseInt(commandId);
         switch (commandId){
             case COMMAND_SET_URL:
                 assert args != null;
@@ -256,12 +226,10 @@ public class WikitudeViewManager
                 view.setLocation(args.getDouble(0),args.getDouble(1),100f);
                 break;
             case COMMAND_RESUME_AR:
-                //without thread handling
-                Log.d(TAG, "Received onResume request from React.");
                 view.onResume();
                 view.loadWorld();
                 break;
-            case COMMAND_STOP_AR:
+            case COMMAND_PAUSE_AR:
                 view.onPause();
                 break;
             case COMMAND_CAPTURE_SCREEN:
@@ -274,8 +242,8 @@ public class WikitudeViewManager
     }
 
     /**
-     * This maps native events called inside receiveEvent() to React callback functions.
-     *
+     * This creates events for reactContext.getJSModule.receiveEvent() calls, and maps them to
+     * callback functions in React.
      * For example:
      *      ```
      *      MapBuilder.builder()
@@ -317,7 +285,6 @@ public class WikitudeViewManager
                 };
                 mainHandler.post(myRunnable);
             }
-            
         }
     }
 
@@ -337,7 +304,6 @@ public class WikitudeViewManager
             }
         }
     }
-
 
     public void resumeAR(){
         if(this.activity != null ){

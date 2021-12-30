@@ -3,8 +3,6 @@ import {
   requireNativeComponent,
   findNodeHandle,
   UIManager,
-  PermissionsAndroid,
-  Button,
   Platform,
 } from 'react-native';
 import React from 'react';
@@ -38,22 +36,20 @@ class WikitudeView extends React.Component {
   async componentDidMount() {
     console.log('didmount Wikitude SDK index.js');
 
-    //Sometimes the resume is not calling because the references is wrong
     this.resumeRendering();
   }
 
   componentWillUnmount() {
     console.log('RN-SDK: componentWillUnmount');
-    this.stopRendering();
   }
 
   componentDidUpdate() {
     console.log('RN-SDK: ComponentDidUpdate');
     console.log('RN-SDK: Value of URL: ', this.props.url);
-    //this.resumeRendering();
   }
 
-  // returns if this device supports the specified feature
+  // implemented in Java with @ReactMethod tag
+  // TODO: Not implemented in java, needs package export
   isDeviceSupportingFeature = feature => {
     if (Platform.OS === 'android') {
     } else {
@@ -83,6 +79,8 @@ class WikitudeView extends React.Component {
     );
   };
 
+  // Below are functions the make calls to native code
+
   setWorldUrl = newUrl => {
     console.log('RN-SDK: Calling setWorldUrl');
     this.callNative(NativeFunctions.setUrl, [newUrl]);
@@ -98,11 +96,16 @@ class WikitudeView extends React.Component {
     this.callNative(NativeFunctions.injectLocation, [lat, lng]);
   };
 
+  captureScreen = mode => {
+    this.callNative(NativeFunctions.captureScreen, [mode]);
+  };
+
+  // called when component unmounts
   stopRendering = () => {
     console.log('RN-SDK: Calling stopRendering');
     this.callNative(NativeFunctions.stopAR, []);
   };
-
+  // called when component mounts
   resumeRendering = () => {
     console.log('RN-SDK: Calling resumeRendering');
     this.callNative(NativeFunctions.resumeAR, []);
@@ -120,9 +123,6 @@ class WikitudeView extends React.Component {
     if (this.props.onFinishLoading) {
       this.props.onFinishLoading(event.nativeEvent);
     }
-    if (Platform.OS !== 'android') {
-      this.resumeRendering();
-    }
   };
   onFailLoading = event => {
     if (this.props.onFailLoading) {
@@ -135,16 +135,7 @@ class WikitudeView extends React.Component {
     }
   };
 
-  captureScreen = mode => {
-    this.callNative(NativeFunctions.captureScreen, [mode]);
-  };
-
-  hasPermission = () => {
-    if (Platform.OS === 'android') {
-      return this.state.hasCameraPermission;
-    }
-    return true;
-  };
+  // returns native view
 
   render() {
     return (
@@ -175,6 +166,9 @@ WikitudeView.propTypes = {
   isPOI: PropTypes.bool,
 };
 
+/**
+ *
+ */
 var WKTView = requireNativeComponent('RNWikitude', WikitudeView);
 
 module.exports = {

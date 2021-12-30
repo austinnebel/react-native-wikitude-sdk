@@ -15,6 +15,11 @@ import com.wikitude.common.permission.PermissionManager;
 
 import java.util.Arrays;
 
+/**
+ * Handles permissions, orientation, and device features.
+ *
+ * !NOTE: Not currently functional.
+ */
 public class WikitudePrecheck extends Activity {
 
 	private PermissionManager mPermissionManager;

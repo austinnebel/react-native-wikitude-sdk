@@ -5,28 +5,28 @@ const androidCommands = UIManager.RNWikitude.Commands;
 
 const nativeFuncs = {
   setUrl: {
-    android: androidCommands.setUrlMode,
-    ios: iosCommands.setUrl,
+    android: 'setUrl',
+    // ios: iosCommands.setUrl,
   },
   callJS: {
-    android: androidCommands.callJSMode,
-    ios: iosCommands.callJavascript,
+    android: 'callJS',
+    // ios: iosCommands.callJavascript,
   },
   injectLocation: {
-    android: androidCommands.injectLocationMode,
-    ios: iosCommands.injectLocation,
+    android: 'injectLocation',
+    // ios: iosCommands.injectLocation,
   },
   stopAR: {
-    android: androidCommands.stopARMode,
-    ios: iosCommands.stopAR,
+    android: 'stopAR',
+    // ios: iosCommands.stopAR,
   },
   resumeAR: {
-    android: androidCommands.resumeARMode,
-    ios: iosCommands.resumeAR,
+    android: 'resumeAR',
+    // ios: iosCommands.resumeAR,
   },
   captureScreen: {
-    android: androidCommands.captureScreen,
-    ios: iosCommands.captureScreen,
+    android: 'captureScreen',
+    // ios: iosCommands.captureScreen,
   },
 };
 
