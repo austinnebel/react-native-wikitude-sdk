@@ -4,14 +4,23 @@ import android.app.Activity;
 import android.content.Context;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.LifecycleRegistry;
+
 import com.wikitude.architect.ArchitectStartupConfiguration;
 import com.wikitude.architect.ArchitectView;
 
 import java.io.IOException;
 import java.net.URL;
 
-
-class WikitudeView extends ArchitectView {
+/**
+ * Wikitude view that is shown in React.
+ * Implements lifecycle methods.
+ * See more at: https://developer.android.com/topic/libraries/architecture/lifecycle#lc
+ */
+class WikitudeView  extends ArchitectView implements LifecycleOwner {
 
     Context ctx;
     Activity activity;
@@ -21,8 +30,9 @@ class WikitudeView extends ArchitectView {
     Double lat = 0.0;
     Double lng = 0.0;
     String TAG = "WikitudeView";
-    WikitudeViewManager ctxManager;
+    WikitudeViewManager viewManager;
 
+    private LifecycleRegistry lifecycleRegistry;
     private ArchitectStartupConfiguration startUpConfig = new ArchitectStartupConfiguration();
 
     public WikitudeView(Activity activity){
@@ -32,13 +42,18 @@ class WikitudeView extends ArchitectView {
         super(activity);
         this.activity = activity;
         this.licenseKey = licenseKey;
-        this.ctxManager = manager;
+        this.viewManager = manager;
+    }
+
+    @NonNull
+    public LifecycleRegistry getLifecycle(){
+        return this.lifecycleRegistry;
     }
 
     /**
      * Method to call in the corresponding life-cycle method of the containing activity.
-     * Configuration file may have more optional information besides the license key
-     *
+     * Configuration file may have more optional information besides the license key.
+     * Sets this views state to CREATED.
      * @param config advanced configuration file, in case you want to pass more than only the license key.
      * @throws ArchitectView.CamNotAccessibleException - when no camera could be found or accessed.
      * @throws ArchitectView.MissingFeatureException - when the features set in config are not supported by the device.
@@ -46,32 +61,47 @@ class WikitudeView extends ArchitectView {
     @Override
     public void onCreate(ArchitectStartupConfiguration config){
         super.onCreate(config);
+        this.lifecycleRegistry = new LifecycleRegistry(this);
+        this.lifecycleRegistry.markState(Lifecycle.State.CREATED);
     }
 
     /**
      * Life-cycle method to called in the corresponding method of the containing activity.
+     * Sets this views state to RESUMED.
      * @throws ArchitectView.CamNotAccessibleException - when camera permissions are not granted or no camera could be found or accessed.
      */
     @Override
     public void onResume(){
         super.onResume();
+        this.lifecycleRegistry.markState(Lifecycle.State.RESUMED);
+
     }
 
     /**
      * Life-cycle method that should be called in the corresponding method of the activity.
+     * Sets this views state to STARTED.
      * @throws IllegalStateException If method is called without preceding life-cycle-method calls
      */
     @Override
     public void onPause(){
         super.onPause();
+        this.lifecycleRegistry.markState(Lifecycle.State.STARTED);
     }
 
     /**
      * onDestroy life-cycle method that should be called in the corresponding method of the activity.
+     * Sets this views state to DESTROYED.
      */
     @Override
     public void onDestroy(){
+        //clear cache before destroying
+        try{
+            this.clearCache();
+        }catch (java.lang.Exception e){
+            Log.e(TAG, "Error clearing cache on destroy: " + e);
+        }
         super.onDestroy();
+        this.lifecycleRegistry.markState(Lifecycle.State.DESTROYED);
     }
 
     /**
@@ -94,7 +124,7 @@ class WikitudeView extends ArchitectView {
         this.loadWorld();
     }
     public void setLicenseKey(String license){
-        startUpConfig.setLicenseKey( license );
+        this.startUpConfig.setLicenseKey( license );
         createWikitude();
     }
     public void setLat(Double lat){
@@ -122,7 +152,6 @@ class WikitudeView extends ArchitectView {
             return;
         }
         try{
-            Log.d(TAG,this.url);
             this.load(this.url);
         }catch(IOException e){
             Log.e(TAG,e.getMessage());
@@ -144,14 +173,14 @@ class WikitudeView extends ArchitectView {
         Log.d(TAG,"CaptureScreen called, MODE: "+ String.valueOf(insideMode));
 
         // calls ArchitectView captureScreen
-        this.captureScreen(insideMode, ctxManager);
+        this.captureScreen(insideMode, this.viewManager);
     }
 
     public void createWikitude(){
         Log.d(TAG,"Creating Wikitude view");
         this.onCreate(startUpConfig);
         this.onPostCreate();
-        this.registerWorldLoadedListener(ctxManager);
+        this.registerWorldLoadedListener(this.viewManager);
         this.loadWorld();
     }
 
