@@ -262,9 +262,9 @@ public class WikitudeViewManager
                 .put("onJsonReceived",
                         MapBuilder.of("phasedRegistrationNames",   MapBuilder.of("bubbled", "onJsonReceived")))
                 .put("onFinishLoading",
-                        MapBuilder.of("phasedRegistrationNames",   MapBuilder.of("bubbled", "onFinishLoading"))).
-                        put("onFailLoading",
-                                MapBuilder.of( "phasedRegistrationNames",  MapBuilder.of("bubbled", "onFailLoading")))
+                        MapBuilder.of("phasedRegistrationNames",   MapBuilder.of("bubbled", "onFinishLoading")))
+                .put("onFailLoading",
+                        MapBuilder.of( "phasedRegistrationNames",  MapBuilder.of("bubbled", "onFailLoading")))
                 .put("onScreenCaptured",
                         MapBuilder.of("phasedRegistrationNames",   MapBuilder.of("bubbled", "onScreenCaptured"))
                 ).build();

@@ -79,7 +79,7 @@ class WikitudeView extends React.Component {
     );
   };
 
-  // Below are functions the make calls to native code
+  // Below are functions that make calls to native code
 
   setWorldUrl = newUrl => {
     console.log('RN-SDK: Calling setWorldUrl');
